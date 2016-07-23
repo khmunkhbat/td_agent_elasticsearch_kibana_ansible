@@ -1,0 +1,5 @@
+---
+- name: rpm repo
+  copy: src=repo dest=/etc/yum.repos.d/td.repo
+
+- include: td-agent.yml tags=td-agent

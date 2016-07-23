@@ -1,0 +1,34 @@
+<source>
+  @type forward
+  port 24224
+</source>
+
+{% for key in log_settings %}
+{% if log_settings[key].aggregator is defined %}
+
+<match {{ log_settings[key].tag_name }}>
+
+{% if log_settings[key].aggregator is defined %}
+  
+  type {{ log_settings[key].aggregator.fw_type }}  
+  host {{ log_settings[key].aggregator.host }}
+  port {{ log_settings[key].aggregator.port }}
+  type_name {{ log_settings[key].aggregator.type_name }}
+
+  logstash_format {{ log_settings[key].aggregator.logstash_format }}
+  logstash_prefix {{ log_settings[key].aggregator.logstash_prefix }}
+  logstash_dateformat {{ log_settings[key].aggregator.logstash_dateformat }}
+
+  buffer_type {{ log_settings[key].aggregator.buffer_type }}
+  buffer_chunk_limit {{ log_settings[key].aggregator.buffer_chunk_limit }}
+  buffer_queue_limit {{ log_settings[key].aggregator.buffer_queue_limit }}
+  flush_interval {{ log_settings[key].aggregator.flush_interval }}
+  retry_limit {{ log_settings[key].aggregator.retry_limit }}
+  retry_wait {{ log_settings[key].aggregator.retry_wait }}
+
+{% endif %}
+
+</match>
+
+{% endif %}
+{% endfor %}

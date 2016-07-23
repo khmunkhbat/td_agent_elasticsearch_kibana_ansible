@@ -1,0 +1,46 @@
+---
+- name: download kibana archive
+  get_url: >
+    url={{ kibana_configs.dl_url }}
+    dest={{ kibana_configs.archive_path }}
+
+- name: unarchive
+  unarchive: >
+    src={{ kibana_configs.archive_path }}
+    dest={{ kibana_configs.install_path }}
+    creates={{ kibana_configs.install_path }}/{{ kibana_configs.install_name }}
+    copy=no
+    owner=root
+
+- name: create symbolic link
+  file: >
+    src={{ kibana_configs.install_path }}/{{ kibana_configs.install_name }}
+    dest={{kibana_configs.install_path }}/kibana
+    state=link
+    force=yes
+
+- name: copy init script
+  template: >
+    src=kibana
+    dest=/etc/init.d/kibana
+    backup=no
+    mode=755
+
+# sed -i "s/# elasticsearch.url: \"http:\/\/localhost:92001\"/elasticsearch.url: \"http:\/\/localhost:9200\"/g" /opt/kibana/config/kibana.yml
+# - shell: sudo sed -i "s/# elasticsearch.url: \"http:\/\/{{ elasticsearch.host }}:{{ elasticsearch.port }}\"/elasticsearch.url: \"http:\/\/localhost:9200\"/g" {{ kibana_configs.install_path }}/kibana/config/kibana.yml
+
+- shell: "sudo sed -i \"s/# elasticsearch.url: \\\"http:\\/\\/localhost:9200\\\"/elasticsearch.url:\\\"http:\\/\\/{{ elasticsearch.host }}:{{ elasticsearch.port }}\\\"/g\" /opt/kibana/config/kibana.yml"
+
+- shell: "sudo sed -i 's/\r//' /etc/init.d/kibana"
+
+- shell: "ps aux | grep kibana | grep -v grep | awk '{ print \"sudo kill -9\", $2 }' | sh"
+
+- shell: "sudo rm -rf /opt/kibana/kibana.pid"
+
+- shell: "/etc/init.d/kibana start"
+
+- name: service start & enabled
+  service: >
+    name=kibana 
+    state=started 
+    enabled=yes

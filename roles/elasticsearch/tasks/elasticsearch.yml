@@ -1,0 +1,9 @@
+---
+- name: copy elasticsearch rpm repo
+  template: src=repo.j2 dest=/etc/yum.repos.d/elasticsearch.repo force=yes
+
+- name: install elasticsearch
+  yum: name=elasticsearch state=latest
+
+- name: service elasticsearch
+  service: name=elasticsearch state=started enabled=yes

@@ -1,0 +1,44 @@
+
+{% for key in log_settings %}
+{% if log_settings[key].forwarder is defined %}
+<source>
+  type {{ log_settings[key].forwarder.log_type }}
+  path {{ log_settings[key].forwarder.log_path }}
+  {% if log_settings[key].forwarder.format_multiline is not defined %}
+format {{ log_settings[key].forwarder.log_format }}
+  {% else %}
+format multiline
+{% for f in log_settings[key].forwarder.format_multiline %}
+{{ f }}
+  {% endfor %}
+  {% endif %}
+  tag {{ log_settings[key].tag_name }}
+  pos_file {{ log_settings[key].forwarder.pos_file_path }}
+</source>
+
+
+<match {{ log_settings[key].tag_name }}>
+{% if log_settings[key].forwarder.slack is defined %}
+
+    type {{ log_settings[key].forwarder.slack.matching_type }}
+    webhook_url {{ log_settings[key].forwarder.slack.webhook_url }}
+    channel {{ log_settings[key].forwarder.slack.channel }}
+    username {{ log_settings[key].forwarder.slack.user_name }}
+    icon_emoji {{ log_settings[key].forwarder.slack.icon_emoji }}
+
+  {% else %}
+  
+    type forward
+    buffer_type memory
+    buffer_chunk_limit {{ log_settings[key].forwarder.buffer_chunk_limit }}
+    buffer_queue_limit {{ log_settings[key].forwarder.buffer_queue_limit }}
+    flush_interval {{ log_settings[key].forwarder.flush_interval }}
+    <server>
+      host {{ log_settings[key].forwarder.forward_host }}
+      port {{ log_settings[key].forwarder.forward_port }}
+    </server>
+
+{% endif %}
+</match>
+{% endif %}
+{% endfor %}

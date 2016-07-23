@@ -1,0 +1,52 @@
+---
+- name: rpm repo
+  copy: >
+    src=repo 
+    dest=/etc/yum.repos.d/td.repo
+
+- name: install td-agent
+  yum: >
+    name=td-agent 
+    state=latest
+
+- name: Check plugins
+  command: "td-agent-gem list --local {{ item.name }}"
+  with_items: "{{ td_agent.plugins }}"
+  changed_when: False
+  failed_when: False
+  register: plugin_status
+
+- name: Install plugins
+  command: "/usr/sbin/td-agent-gem install {{ item.item.name }}"
+  with_items: plugin_status.results
+  when: plugin_status.results is defined and item.stdout[0] is undefined
+
+- name: td-agent template copy
+  template: >
+    src=td-agent.conf
+    dest=/etc/td-agent/td-agent.conf
+    backup=yes
+  notify: restart td-agent
+
+- name: Ensures /etc/td-agent/conf.d/ dir exists
+  file: >
+    path=/etc/td-agent/conf.d/ 
+    state=directory 
+    owner=root 
+    group=root
+    mode=0755
+
+- name: template copy
+  template: >
+    src=forwarder.conf.j2
+    dest=/etc/td-agent/conf.d/forwarder.cnf
+    backup=yes
+  notify: restart td-agent
+
+- name: log file owner conf
+  shell: "sudo chown -R td-agent:td-agent {{ item.value.forwarder.log_path }}"
+  with_dict: "{{log_settings}}"
+
+- name: log file permission conf
+  shell: "sudo chmod -R g+r {{ item.value.forwarder.log_path }}"
+  with_dict: "{{log_settings}}"

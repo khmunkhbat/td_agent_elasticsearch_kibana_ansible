@@ -1,0 +1,77 @@
+---
+- name: rpm repo
+  copy: >
+    src=repo 
+    dest=/etc/yum.repos.d/td.repo
+
+- name: install td-agent
+  yum: >
+    name=td-agent 
+    state=latest
+
+- name: Check plugins
+  command: "td-agent-gem list --local {{ item.name }}"
+  with_items: "{{ td_agent.plugins }}"
+  changed_when: False
+  failed_when: False
+  register: plugin_status
+
+- name: Install plugins
+  command: "td-agent-gem install {{ item.item.name }}"
+  with_items: plugin_status.results
+  when: plugin_status.results is defined and item.stdout[0] is undefined
+
+- name: Ensures /etc/td-agent/conf.d/ dir exists
+  file: >
+    path=/etc/td-agent/conf.d/ 
+    state=directory 
+    owner=root 
+    group=root 
+    mode=0755
+
+- name: td-agent conf copy
+  template: >
+    src=td_agent.conf
+    dest=/etc/td-agent/td-agent.conf
+    backup=yes
+  notify: restart td-agent
+
+- name: service td-agent
+  service: >
+    name=td-agent 
+    state=started 
+    enabled=yes
+
+# shell: | curl -XPUT 'http://localhost:9200/.kibana/index-pattern/nginx_access-*' -d '{"title":"nginx_access-*","timeFieldName":"@timestamp","customFormats":"{}","fields":"[{\"type\":\"string\",\"indexed\":false,\"analyzed\":false,\"name\":\"_source\",\"count\":0},{\"type\":\"string\",\"indexed\":true,\"analyzed\":false,\"name\":\"_type\",\"count\":0},{\"type\":\"string\",\"indexed\":true,\"analyzed\":false,\"name\":\"_id\",\"count\":0},{\"type\":\"string\",\"indexed\":false,\"analyzed\":false,\"name\":\"_index\",\"count\":4},{\"type\":\"string\",\"indexed\":true,\"analyzed\":true,\"doc_values\":false,\"name\":\"message\",\"count\":0},{\"type\":\"date\",\"indexed\":true,\"analyzed\":false,\"doc_values\":false,\"name\":\"@timestamp\",\"count\":0},{\"type\":\"number\",\"indexed\":true,\"analyzed\":false,\"name\":\"_score\",\"count\":0}]"}'
+# - name: configure kibana and elasticsearch
+#   shell: "curl -XPUT '{{ elasticsearch.host }}:{{ elasticsearch.port }}/.kibana/index-pattern/nginx_access-*' -d '{\"title\":\"nginx_access-*\",\"timeFieldName\":\"@timestamp\",\"customFormats\":\"{}\",\"fields\":\"[{\\\"type\\\":\\\"string\\\",\\\"indexed\\\":false,\\\"analyzed\\\":false,\\\"name\\\":\\\"_source\\\",\\\"count\\\":0},{\\\"type\\\":\\\"string\\\",\\\"indexed\\\":true,\\\"analyzed\\\":false,\\\"name\\\":\\\"_type\\\",\\\"count\\\":0},{\\\"type\\\":\\\"string\\\",\\\"indexed\\\":true,\\\"analyzed\\\":false,\\\"name\\\":\\\"_id\\\",\\\"count\\\":0},{\\\"type\\\":\\\"string\\\",\\\"indexed\\\":false,\\\"analyzed\\\":false,\\\"name\\\":\\\"_index\\\",\\\"count\\\":4},{\\\"type\\\":\\\"string\\\",\\\"indexed\\\":true,\\\"analyzed\\\":true,\\\"doc_values\\\":false,\\\"name\\\":\\\"message\\\",\\\"count\\\":0},{\\\"type\\\":\\\"date\\\",\\\"indexed\\\":true,\\\"analyzed\\\":false,\\\"doc_values\\\":false,\\\"name\\\":\\\"@timestamp\\\",\\\"count\\\":0},{\\\"type\\\":\\\"number\\\",\\\"indexed\\\":true,\\\"analyzed\\\":false,\\\"name\\\":\\\"_score\\\",\\\"count\\\":0}]\"}'"
+
+# shell: | curl -XPUT 'http://localhost:9200/.kibana/search/guid' -d '{"title":"guid","description":"Search panel for guid Logs","hits":0,"columns":["type","messageType","application","logMessage","module"],"kibanaSavedObjectMeta":{"searchSourceJSON":"{\"query\":{\"query_string\":{\"query\":\"*\"}},\"filter\":[],\"index\":\"_nginx_access-*\"}"}}'
+# - name: add index
+#   shell: "curl -XPUT '{{ elasticsearch.host }}:{{ elasticsearch.port }}/.kibana/search/guid' -d '{\"title\":\"guid\",\"description\":\"Search panel for guid Logs\",\"hits\":0,\"columns\":[\"type\",\"messageType\",\"application\",\"logMessage\",\"module\"],\"kibanaSavedObjectMeta\":{\"searchSourceJSON\":\"{\\\"query\\\":{\\\"query_string\\\":{\\\"query\\\":\\\"*\\\"}},\\\"filter\\\":[],\\\"index\\\":\\\"nginx_access-*\\\"}\"}}'"
+
+- name: configure kibana and elasticsearch
+  shell: "curl -XPUT '{{ elasticsearch.host }}:{{ elasticsearch.port }}/.kibana/index-pattern/{{ item.value.tag_name }}-*' -d '{\"title\":\"{{ item.value.tag_name }}-*\",\"timeFieldName\":\"@timestamp\",\"customFormats\":\"{}\",\"fields\":\"[{\\\"type\\\":\\\"string\\\",\\\"indexed\\\":false,\\\"analyzed\\\":false,\\\"name\\\":\\\"_source\\\",\\\"count\\\":0},{\\\"type\\\":\\\"string\\\",\\\"indexed\\\":true,\\\"analyzed\\\":false,\\\"name\\\":\\\"_type\\\",\\\"count\\\":0},{\\\"type\\\":\\\"string\\\",\\\"indexed\\\":true,\\\"analyzed\\\":false,\\\"name\\\":\\\"_id\\\",\\\"count\\\":0},{\\\"type\\\":\\\"string\\\",\\\"indexed\\\":false,\\\"analyzed\\\":false,\\\"name\\\":\\\"_index\\\",\\\"count\\\":4},{\\\"type\\\":\\\"string\\\",\\\"indexed\\\":true,\\\"analyzed\\\":true,\\\"doc_values\\\":false,\\\"name\\\":\\\"message\\\",\\\"count\\\":0},{\\\"type\\\":\\\"date\\\",\\\"indexed\\\":true,\\\"analyzed\\\":false,\\\"doc_values\\\":false,\\\"name\\\":\\\"@timestamp\\\",\\\"count\\\":0},{\\\"type\\\":\\\"number\\\",\\\"indexed\\\":true,\\\"analyzed\\\":false,\\\"name\\\":\\\"_score\\\",\\\"count\\\":0}]\"}'"
+  with_dict: "{{log_settings}}"
+
+# shell: | curl -XPUT 'http://localhost:9200/.kibana/search/guid' -d '{"title":"guid","description":"Search panel for guid Logs","hits":0,"columns":["type","messageType","application","logMessage","module"],"kibanaSavedObjectMeta":{"searchSourceJSON":"{\"query\":{\"query_string\":{\"query\":\"*\"}},\"filter\":[],\"index\":\"_nginx_access-*\"}"}}'
+- name: add index
+  shell: "curl -XPUT '{{ elasticsearch.host }}:{{ elasticsearch.port }}/.kibana/search/guid' -d '{\"title\":\"guid\",\"description\":\"Search panel for guid Logs\",\"hits\":0,\"columns\":[\"type\",\"messageType\",\"application\",\"logMessage\",\"module\"],\"kibanaSavedObjectMeta\":{\"searchSourceJSON\":\"{\\\"query\\\":{\\\"query_string\\\":{\\\"query\\\":\\\"*\\\"}},\\\"filter\\\":[],\\\"index\\\":\\\"{{ item.value.tag_name }}-*\\\"}\"}}'"
+  with_dict: "{{log_settings}}"
+
+- name: Ensures /etc/td-agent/conf.d/ dir exists
+  file: >
+    path=/etc/td-agent/conf.d/ 
+    state=directory 
+    owner=root 
+    group=root 
+    mode=0755
+
+- name: td_agent settings(nginx)
+  template: >
+    src=aggregator.conf.j2 
+    dest=/etc/td-agent/conf.d/aggregator.cnf 
+    owner=root 
+    group=root 
+    mode=644
+  notify: restart td-agent

@@ -1,0 +1,146 @@
+---
+nginx_port: 80
+
+elasticsearch:
+  host: 'localhost'
+  port: 9200
+
+log_settings:
+  access:
+    tag_name: 'access_log'
+    aggregator:
+      fw_type: 'elasticsearch'
+      host: '{{ elasticsearch.host }}'
+      port: '{{ elasticsearch.port }}'
+      type_name: 'access_log'
+      logstash_format: 'true'
+      logstash_prefix: 'access_log'
+      logstash_dateformat: '%Y%m'
+      buffer_type: 'memory'
+      buffer_chunk_limit: '10m'
+      buffer_queue_limit: '10'
+      flush_interval: '1s'
+      retry_limit: '16'
+      retry_wait: '1s'
+    forwarder:
+      forward_host: '192.168.33.55'
+      forward_port: '24224'
+      log_type: 'tail'
+      time_format: '%Y%m%dT%H%M%S%z'
+      time_slice_format: '%Y%m%d'
+      buffer_chunk_limit: '3k'
+      buffer_queue_limit: '3'
+      flush_interval: '1s'
+      log_path: '/var/log/nginx/access.log'
+      log_format: 'none' #'/^(?<domain>[^\t]*) (?<host>[^\t]*) (?<user>[^\t]*) \[(?<time>[^\t]]*)\] (?<method>\S+)(?: +(?<path>[^\t]*) +\S*) (?<status>[^\t]*)*/'
+      pos_file_path: '/var/log/td-agent/nginx_access.pos'
+
+  error:
+    tag_name: 'error_log'
+    aggregator:
+      fw_type: 'elasticsearch'
+      host: '{{ elasticsearch.host }}'
+      port: '{{ elasticsearch.port }}'
+      type_name: 'error_log'
+      logstash_format: 'true'
+      logstash_prefix: 'error_log'
+      logstash_dateformat: '%Y%m'
+      buffer_type: 'memory'
+      buffer_chunk_limit: '10m'
+      buffer_queue_limit: '10'
+      flush_interval: '1s'
+      retry_limit: '16'
+      retry_wait: '1s'
+    forwarder:
+      forward_host: '192.168.33.55'
+      forward_port: '24224'
+      log_type: 'tail'
+      time_format: '%Y%m%dT%H%M%S%z'
+      time_slice_format: '%Y%m%d'
+      buffer_chunk_limit: '3k'
+      buffer_queue_limit: '3'
+      flush_interval: '1s'
+      log_path: '/var/log/nginx/error.log'
+      log_format: 'none' #/^(?<host>[^ ]*) (?<remote>[^ ]*) (?<user>[^ ]*) \[(?<time>[^\]]*)\] "(?<method>\S+)(?: +(?<path>[^\"]*) +\S*)?" (?<status_code>[^ ]*) (?<size>[^ ]*)(?: "(?<referer>[^\"]*)" "(?<agent>[^\"]*)" "(?<forward>[^\"]*)")?$/'
+      pos_file_path: '/var/log/td-agent/nginx_error.pos'
+
+  sys:
+    tag_name: 'sys_log'
+    aggregator:
+      fw_type: 'elasticsearch'
+      host: '{{ elasticsearch.host }}'
+      port: '{{ elasticsearch.port }}'
+      type_name: 'sys_log'
+      logstash_format: 'true'
+      logstash_prefix: 'sys_log'
+      logstash_dateformat: '%Y%m'
+      buffer_type: 'memory'
+      buffer_chunk_limit: '10m'
+      buffer_queue_limit: '10'
+      flush_interval: '1s'
+      retry_limit: '16'
+      retry_wait: '1s'
+    forwarder:
+      forward_host: '192.168.33.55'
+      forward_port: '24224'
+      log_type: 'tail'
+      time_format: '%Y%m%dT%H%M%S%z'
+      time_slice_format: '%Y%m%d'
+      buffer_chunk_limit: '3k'
+      buffer_queue_limit: '3'
+      flush_interval: '1s'
+      log_path: '/var/log/secure'
+      log_format: 'none' #/^(?<host>[^ ]*) (?<remote>[^ ]*) (?<user>[^ ]*) \[(?<time>[^\]]*)\] "(?<method>\S+)(?: +(?<path>[^\"]*) +\S*)?" (?<status_code>[^ ]*) (?<size>[^ ]*)(?: "(?<referer>[^\"]*)" "(?<agent>[^\"]*)" "(?<forward>[^\"]*)")?$/'
+      pos_file_path: '/var/log/td-agent/secure.pos'
+
+  application:
+    tag_name: 'application_log'
+    aggregator:
+      fw_type: 'elasticsearch'
+      host: '{{ elasticsearch.host }}'
+      port: '{{ elasticsearch.port }}'
+      type_name: 'application_log'
+      logstash_format: 'true'
+      logstash_prefix: 'application_log'
+      logstash_dateformat: '%Y%m'
+      buffer_type: 'memory'
+      buffer_chunk_limit: '10m'
+      buffer_queue_limit: '10'
+      flush_interval: '1s'
+      retry_limit: '16'
+      retry_wait: '1s'
+    forwarder:
+      forward_host: '192.168.33.55'
+      forward_port: '24224'
+      log_type: 'tail'
+      time_format: '%Y%m%dT%H%M%S%z'
+      time_slice_format: '%Y%m%d'
+      buffer_chunk_limit: '3k'
+      buffer_queue_limit: '3'
+      flush_interval: '1s'
+      log_path: ' log path '
+      log_format: 'none'
+      format_multiline:
+        [
+          'format_firstline /^Started/',
+          'format1 /Started (?<method>[^ ]+) "(?<path>[^"]+)" for (?<host>[^ ]+) at (?<time>[^ ]+ [^ ]+ [^ ]+)\n/',
+          'format2 /Processing by (?<controller>[^\u0023]+)\u0023(?<controller_method>[^ ]+) as (?<format>[^ ]+?)\n/',
+          'format3 /(  Parameters: (?<parameters>[^ ]+)\n)?/',
+          'format4 /  Rendered (?<template>[^ ]+) within (?<layout>.+) \([\d\.]+ms\)\n/',
+          'format5 /Completed (?<code>[^ ]+) [^ ]+ in (?<runtime>[\d\.]+)ms \(Views: (?<view_runtime>[\d\.]+)ms \| ActiveRecord: (?<ar_runtime>[\d\.]+)ms\)/'
+        ]
+      pos_file_path: '/var/log/td-agent/development.log'
+
+  slack_notification:
+    tag_name: 'slack_error_notification'
+    forwarder:
+      log_type: 'tail'
+      log_path: '/var/log/nginx/access.log'
+      log_format: 'none'
+      pos_file_path: '/var/log/td-agent/access_slack_log.pos'
+      slack:
+        matching_type: 'slack'
+        webhook_url: ' uuriin slack - iin hook url - iig'
+        channel: 'log_monitoring'
+        user_name: ' hereglegchiin ner '
+        icon_emoji: ':ghost:'
